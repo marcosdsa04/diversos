@@ -1,0 +1,736 @@
+FORM f_monta_saida_dados .
+
+***Inicio - ABAP_EVOX - 12/01/23
+  CONSTANTS c_nums TYPE string VALUE '1234567890'.
+  DATA: v_docref TYPE j_1bdocref,
+        v_conc   TYPE string,
+        v_len    TYPE i,
+        v_pos    TYPE i,
+        v_nfenum TYPE j_1bnfnum9.
+***Fim - ABAP_EVOX - 12/01/23
+
+***Inicio - ABAP_EVOX - 20/11/23
+  DATA: BEGIN OF t_cts_med OCCURS 0,
+          matnr TYPE mara-matnr,
+          menge TYPE j_1bnflin-menge,
+          cpv   TYPE vbrp-wavwr,
+        END OF t_cts_med,
+        v_cts_med TYPE p DECIMALS 7,
+        w_cts_med LIKE LINE OF t_cts_med.
+***Fim - ABAP_EVOX - 20/11/23
+
+***Inicio - ABAP_EVOX - 05/03/24
+  DATA: v_salk3  TYPE mlcd-salk3,
+        v_estprd TYPE mlcd-estprd,
+        v_estkdm TYPE mlcd-estkdm,
+        v_mstprd TYPE mlcd-mstprd,
+        v_mstkdm TYPE mlcd-mstkdm,
+        v_lbkum  TYPE mlcd-lbkum,
+        v_yes    TYPE  c.
+***Fim - ABAP_EVOX - 05/03/24
+
+  f_progressbar 'Montando saída dos dados... Aguarde!!!'.
+
+* Monta tabela de saida ALV
+
+  SORT it_tabref BY nf_nronf  nf_dtemis.         "ACB-I 06.07.2020 Melhoria na seleção de dados
+  SORT it_basis BY nf_nronf nf_dtemis nf_codcli. "ACB-I 06.07.2020 Melhoria na seleção de dados
+
+  LOOP AT ti_lin.
+
+    CASE p_bukrs.
+
+      WHEN '0500'.
+*        READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                    itmnum = ti_lin-itmnum
+*                                    taxtyp = 'ICS3'
+*                                    BINARY SEARCH.
+*        CLEAR ti_fstx.
+*        SELECT  SINGLE *
+*          FROM  j_1bnfstx
+*          INTO ti_fstx
+*          WHERE docnum EQ ti_lin-docnum
+*            AND itmnum EQ ti_lin-itmnum
+*            AND taxtyp EQ 'ICS3'.
+*        IF sy-subrc EQ 0.
+*          ADD ti_fstx-taxval TO ti_lin-netwr.
+*        ENDIF.
+
+*        READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                    itmnum = ti_lin-itmnum
+*                                    taxtyp = 'IPI3'
+*                                    BINARY SEARCH.
+*        CLEAR ti_fstx.
+*        SELECT  SINGLE *
+*          FROM  j_1bnfstx
+*          INTO ti_fstx
+*          WHERE docnum EQ ti_lin-docnum
+*            AND itmnum EQ ti_lin-itmnum
+*            AND taxtyp EQ 'IPI3'.
+*        IF sy-subrc EQ 0.
+*          ADD ti_fstx-taxval TO ti_lin-netwr.
+*        ENDIF.
+
+        CLEAR ti_doc.
+        READ TABLE ti_doc WITH KEY docnum = ti_lin-docnum
+                                   BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          CLEAR ti_kna1.
+          READ TABLE ti_kna1 WITH KEY kunnr = ti_doc-parid
+                                     BINARY SEARCH.
+
+          CLEAR ti_ztsubcanal.
+          READ TABLE ti_ztsubcanal WITH KEY brsch = ti_kna1-brsch BINARY SEARCH.
+
+          CLEAR ti_tbrct.
+          READ TABLE ti_tbrct WITH  KEY braco = ti_kna1-bran1 BINARY SEARCH.
+
+        ELSE.
+          CLEAR ti_kna1.
+        ENDIF.
+
+      WHEN OTHERS.
+*        READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                    itmnum = ti_lin-itmnum
+*                                    taxtyp = 'ICS1'
+*                                    BINARY SEARCH.
+*        CLEAR ti_fstx.
+*        SELECT SINGLE *
+*          FROM j_1bnfstx
+*          INTO ti_fstx
+*          WHERE docnum EQ ti_lin-docnum
+*            AND itmnum EQ ti_lin-itmnum
+*            AND taxtyp EQ 'ICS1'.
+*        IF sy-subrc EQ 0.
+*          ADD ti_fstx-taxval TO ti_lin-netwr.
+*        ENDIF.
+
+*        READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                    itmnum = ti_lin-itmnum
+*                                    taxtyp = 'IPI1'
+*                                    BINARY SEARCH.
+*        CLEAR ti_fstx.
+*        SELECT  SINGLE *
+*          FROM  j_1bnfstx
+*          INTO ti_fstx
+*          WHERE docnum EQ ti_lin-docnum
+*            AND itmnum EQ ti_lin-itmnum
+*            AND taxtyp EQ 'IPI1'.
+*        IF sy-subrc EQ 0.
+*          ADD ti_fstx-taxval TO ti_lin-netwr.
+*        ENDIF.
+
+        CLEAR ti_doc.
+        READ TABLE ti_doc WITH KEY docnum = ti_lin-docnum
+                                   BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          CLEAR ti_kna1.
+          READ TABLE ti_kna1 WITH KEY kunnr = ti_doc-parid
+                                     BINARY SEARCH.
+
+
+          CLEAR ti_ztsubcanal.
+          READ TABLE ti_ztsubcanal WITH KEY brsch = ti_kna1-brsch BINARY SEARCH.
+
+          CLEAR ti_tbrct.
+          READ TABLE ti_tbrct WITH KEY braco = ti_kna1-bran1 BINARY SEARCH.
+
+        ELSE.
+          CLEAR ti_kna1.
+        ENDIF.
+
+    ENDCASE.
+
+***    1ª Regra: Ctg.nota fiscal
+    IF ti_doc-nftype EQ 'ZA' OR
+       ti_doc-nftype EQ 'ZB' OR
+       ti_doc-nftype EQ 'ZC' OR
+       ti_doc-nftype EQ 'A1' OR
+       ti_doc-nftype EQ 'A2'.
+
+      READ TABLE ti_alv WITH KEY docnum = ti_doc-docref BINARY SEARCH. "ACB-I 06.07.2020 Melhoria na seleção de dados
+      IF sy-subrc EQ 0.
+        DELETE ti_alv FROM sy-tabix.
+      ENDIF.
+      CLEAR  ti_alv.
+      CONTINUE.
+    ENDIF.
+
+
+***    2ª Regra: Ctg.nota fiscal
+    IF ti_doc-nftype EQ 'ZR' OR
+       ti_doc-nftype EQ 'ZU' OR
+       ti_doc-nftype EQ 'ZY' OR
+       ti_doc-nftype EQ 'N5' OR
+       ti_doc-nftype EQ 'ZB' OR
+       ti_doc-nftype EQ 'YD' OR
+       ti_doc-nftype EQ 'N4' OR
+       ( ti_doc-nftype EQ 'YG' AND ( ti_lin-cfop = '1124AA' OR ti_lin-cfop = '1901AA'
+                                  OR ti_lin-cfop = '1902AA' OR ti_lin-cfop = '1949AA' ) ) OR
+       ( ti_doc-nftype EQ 'Z7' AND ( ti_lin-cfop = '1202AA' OR ti_lin-cfop = '2202AA'
+                                  OR ti_lin-cfop = '1411AA' OR ti_lin-cfop = '2411AA'
+                                  OR ti_lin-cfop = '1410AA' OR ti_lin-cfop = '2410AA' ) ) OR
+       ti_doc-nftype EQ 'ZE'.
+
+      ti_lin-netwr = ti_lin-netwr * -1.
+      ti_lin-menge = ti_lin-menge * -1.
+    ELSEIF  ti_doc-nftype EQ 'Z7'.
+      CLEAR  ti_lin.
+      CONTINUE.
+    ENDIF.
+
+    MOVE:
+      ti_doc-branch TO ti_alv-begru, " Unidade de Negócio
+
+***ACB-I 11.08.2020 Melhoria na seleção de dados
+      ti_kna1-brsch TO ti_alv-brsch, " SubCanal de Distribuição
+      ti_ztsubcanal-canal TO ti_alv-canal, "Canal de Distribuição
+***ACB-F 11.08.2020 Melhoria na seleção de dados
+
+      ti_doc-parid  TO ti_alv-parid, " PV
+      ti_doc-name1  TO ti_alv-name1, " Razão Social
+
+      ti_doc-docdat TO ti_alv-docdat,
+      ti_doc-pstdat TO ti_alv-pstdat,
+      ti_doc-docnum TO ti_alv-docnum,
+      ti_doc-docref TO ti_alv-docref,
+      ti_doc-nfenum TO ti_alv-nfenum,
+      ti_doc-series TO ti_alv-series,
+
+      ti_lin-cfop   TO ti_alv-cfop,
+      ti_lin-maktx  TO ti_alv-maktx,
+      ti_lin-menge  TO ti_alv-menge,
+      ti_lin-netwr  TO ti_alv-netwr,
+      ti_doc-parvw  TO ti_alv-parvw,
+      ti_doc-observat TO ti_alv-observat,
+      ti_tbrct-braco TO ti_alv-braco,
+      ti_tbrct-vtext TO ti_alv-vtext.
+
+***ACB-I 11.08.2020 Melhoria na seleção de dados
+    CONCATENATE  ti_doc-docdat+6(2)'/' ti_doc-docdat+4(2)'/' ti_doc-docdat(4) INTO ti_alv-docdatf.
+    CONCATENATE  ti_doc-pstdat+6(2)'/' ti_doc-pstdat+4(2)'/' ti_doc-pstdat(4) INTO ti_alv-pstdatf.
+***ACB-F 11.08.2020 Melhoria na seleção de dados
+
+
+***ACB-I 06.07.2020 Melhoria na seleção de dados
+    CLEAR t_j_1bnfdoc.
+    IF ti_doc-docref IS NOT INITIAL.
+      READ TABLE t_j_1bnfdoc WITH KEY docnum = ti_doc-docref BINARY SEARCH.
+
+      IF sy-subrc EQ 0.
+        ti_alv-nferef  = t_j_1bnfdoc-nfenum.
+        ti_alv-dtnfref = t_j_1bnfdoc-docdat.
+***ACB-I 11.08.2020 Melhoria na seleção de dados
+        CONCATENATE ti_alv-dtnfref+6(2)'/' ti_alv-dtnfref+4(2)'/' ti_alv-dtnfref(4) INTO ti_alv-dtnfreff.
+***ACB-F 11.08.2020 Melhoria na seleção de dados
+
+      ELSE.
+        ti_alv-nferef  = 0.
+        ti_alv-dtnfref = 0.
+        ti_alv-dtnfreff = 0.
+      ENDIF.
+
+    ENDIF.
+***ACB-F 10.06.2020
+
+
+
+    WRITE:
+      ti_lin-matnr  TO ti_alv-matnr.
+
+    MOVE ti_alv-matnr TO ti_alv-produ.
+
+*************** INICIO - NOVO CALCULO DAS COLUNAS IMPOSTOS
+*    READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                itmnum = ti_lin-itmnum
+*                                taxtyp = 'IPI3'
+*                                BINARY SEARCH.
+
+
+    CLEAR ti_fstx.
+    SELECT  SINGLE *
+      FROM  j_1bnfstx
+      INTO ti_fstx
+      WHERE docnum EQ ti_lin-docnum
+        AND itmnum EQ ti_lin-itmnum
+        AND ( taxtyp EQ 'IPI3' OR
+              taxtyp EQ 'IPI1' ).
+    IF sy-subrc EQ 0.
+      ti_alv-ipi = ti_fstx-taxval.
+    ELSE.
+      CLEAR ti_alv-ipi.
+    ENDIF.
+
+*    READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                itmnum = ti_lin-itmnum
+*                                taxtyp = 'ICS3'
+*                                BINARY SEARCH.
+    CLEAR ti_fstx.
+    REFRESH ti_fstx.
+    SELECT  *
+      FROM  j_1bnfstx
+      INTO TABLE ti_fstx
+      WHERE docnum EQ ti_lin-docnum
+        AND itmnum EQ ti_lin-itmnum
+        AND ( taxtyp EQ 'ICS3' OR taxtyp EQ 'ICFP' OR taxtyp EQ 'ICS1' ).
+    IF sy-subrc EQ 0.
+      LOOP AT ti_fstx.
+        ti_alv-icms_st = ti_alv-icms_st + ti_fstx-taxval.
+      ENDLOOP.
+
+    ELSE.
+      CLEAR ti_alv-icms_st.
+    ENDIF.
+
+    IF    ti_doc-nftype EQ 'ZR' OR
+          ti_doc-nftype EQ 'ZU' OR
+          ti_doc-nftype EQ 'ZY' OR
+          ti_doc-nftype EQ 'N5' OR
+          ti_doc-nftype EQ 'ZB' OR
+          ti_doc-nftype EQ 'YD' OR
+          ti_doc-nftype EQ 'N4' OR
+         ( ti_doc-nftype EQ 'YG' AND ( ti_lin-cfop = '1124AA' OR ti_lin-cfop = '1901AA'
+                                    OR ti_lin-cfop = '1902AA' OR ti_lin-cfop = '1949AA' ) ) OR
+         ( ti_doc-nftype EQ 'Z7' AND ( ti_lin-cfop = '1202AA' OR ti_lin-cfop = '2202AA'
+                                    OR ti_lin-cfop = '1411AA' OR ti_lin-cfop = '2411AA'
+                                    OR ti_lin-cfop = '1410AA' OR ti_lin-cfop = '2410AA' ) ) OR
+          ti_doc-nftype EQ 'ZE'.
+      ti_alv-netwr = ti_alv-netwr * -1.
+    ELSEIF  ti_doc-nftype EQ 'Z7'.
+      CLEAR  ti_lin.
+      CONTINUE.
+    ENDIF.
+
+    ti_alv-total = ti_alv-netwr + ti_alv-ipi + ti_alv-icms_st. " Produto +  IPI + ICMS ST
+
+*    READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                itmnum = ti_lin-itmnum
+*                                taxtyp = 'ICM3'
+*                                BINARY SEARCH.
+    CLEAR ti_fstx.
+    REFRESH ti_fstx.
+    SELECT *
+      FROM  j_1bnfstx
+      INTO TABLE ti_fstx
+      WHERE docnum EQ ti_lin-docnum
+        AND itmnum EQ ti_lin-itmnum
+        AND ( taxtyp EQ 'ICM3' OR
+              taxtyp EQ 'ICM2' OR
+              taxtyp EQ 'ICM1' OR
+              taxtyp EQ 'ICSC').
+    IF sy-subrc EQ 0.
+      LOOP AT ti_fstx.
+        ti_alv-icms = ti_alv-icms + ti_fstx-taxval.
+      ENDLOOP.
+
+    ELSE.
+      CLEAR  ti_alv-icms.
+    ENDIF.
+
+*    READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                itmnum = ti_lin-itmnum
+*                                taxtyp = 'IPW3'
+*                                BINARY SEARCH.
+    CLEAR ti_fstx.
+    SELECT  SINGLE *
+      FROM  j_1bnfstx
+      INTO ti_fstx
+      WHERE docnum EQ ti_lin-docnum
+        AND itmnum EQ ti_lin-itmnum
+        AND ( taxtyp EQ 'IPW3' OR
+              taxtyp EQ 'IPSN' OR
+              taxtyp EQ 'IPSU' OR
+              taxtyp EQ 'IPS3' ).
+    IF sy-subrc EQ 0.
+      ti_alv-pis = ti_fstx-taxval.
+    ELSE.
+      CLEAR ti_alv-pis.
+    ENDIF.
+
+*    READ TABLE ti_fstx WITH KEY docnum = ti_lin-docnum
+*                                itmnum = ti_lin-itmnum
+*                                taxtyp = 'ICN3'
+*                                BINARY SEARCH.
+    CLEAR ti_fstx.
+    SELECT  SINGLE *
+      FROM  j_1bnfstx
+      INTO ti_fstx
+      WHERE docnum EQ ti_lin-docnum
+        AND itmnum EQ ti_lin-itmnum
+        AND ( taxtyp EQ 'ICN3' OR
+              taxtyp EQ 'ICOU' ).
+    IF sy-subrc EQ 0.
+      ti_alv-cofins = ti_fstx-taxval.
+    ELSE.
+      CLEAR ti_alv-cofins.
+    ENDIF.
+
+    ti_alv-rec_liquida = ( ti_alv-icms + ti_alv-pis + ti_alv-cofins )  .  " #ICMS# + #PIS# + #COFINS# = Resultado
+
+    ti_alv-rec_liquida = ti_alv-netwr - ti_alv-rec_liquida.
+
+*   Inicio - 158027 - EX_MARTINS - 31.03.2021
+*            Ajustar calculo CMV/CPV
+    CLEAR: vg_exists,
+           ti_alv-wavwr.
+
+    READ TABLE ti_tvarvc WITH KEY name = 'ZSD0049_BUKRS_CMV'
+                                  low  = p_bukrs BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+
+      READ TABLE ti_mara WITH KEY matnr = ti_lin-matnr
+                                  bwkey = ti_lin-werks BINARY SEARCH.
+      IF sy-subrc IS INITIAL.
+
+        READ TABLE ti_tvarvc WITH KEY name = 'ZSD0049_MTART_CMV'
+                                      low  = ti_mara-mtart BINARY SEARCH.
+        IF sy-subrc IS INITIAL.
+
+          READ TABLE ti_tvarvc WITH KEY name = 'ZSD0049_BKLAS_CMV'
+                                        low  = ti_mara-bklas BINARY SEARCH.
+          IF sy-subrc IS INITIAL.
+
+***Inicio - ABAP_EVOX - 14/11/23
+            READ TABLE t_vbfa INTO DATA(w_vbfa2) WITH KEY vbeln = ti_lin-refkey(10) BINARY SEARCH.
+***Fim - ABAP_EVOX - 14/11/23
+
+            READ TABLE ti_ckmlhd WITH KEY matnr = ti_mara-matnr
+                                          bwkey = ti_mara-bwkey
+***Inicio - ABAP_EVOX - 14/11/23
+                                          vbeln = w_vbfa2-vbelv
+***Fim - ABAP_EVOX - 14/11/23
+                                          BINARY SEARCH.
+            IF sy-subrc IS NOT INITIAL.
+
+              READ TABLE ti_ckmlhd WITH KEY matnr = ti_mara-matnr
+                                            bwkey = ti_mara-bwkey
+                                            BINARY SEARCH.
+
+            ENDIF.
+
+            IF sy-subrc IS INITIAL.
+
+              MOVE: ti_doc-pstdat(4)   TO vg_bdatj,
+                    ti_doc-pstdat+4(2) TO vg_poper.
+
+***Inicio - ABAP_EVOX - 12/01/23
+*              READ TABLE ti_mlcd WITH KEY kalnr = ti_ckmlhd-kalnr
+*                                          bdatj = vg_bdatj
+*                                          poper = vg_poper BINARY SEARCH.
+*              IF sy-subrc IS INITIAL.
+*
+*                vg_netpr = ( ti_mlcd-salk3
+*                           + ti_mlcd-estprd
+*                           + ti_mlcd-estkdm
+*                           + ti_mlcd-mstprd
+*                           + ti_mlcd-mstkdm ) / ti_mlcd-lbkum.
+*
+*                IF ti_lin-menge GE 0.
+*                  ti_alv-wavwr = vg_netpr * ti_lin-menge.
+*                ELSE.
+*                  ti_alv-wavwr = vg_netpr * ( ti_lin-menge * -1 ).
+*                ENDIF.
+*
+*              ENDIF.
+***Fim - ABAP_EVOX - 12/01/23
+
+            ENDIF.
+
+          ENDIF.
+
+        ENDIF.
+
+      ENDIF.
+
+    ENDIF.
+
+***Inicio - ABAP_EVOX - 12/01/23
+*    IF ti_alv-wavwr IS INITIAL.
+*
+*      SELECT SINGLE wavwr
+*        INTO ti_alv-wavwr
+*        FROM vbrp
+*        WHERE vbeln = ti_lin-refkey(10)
+*          AND posnr = ti_lin-itmnum.
+*
+*    ENDIF.
+
+    IF ti_mara-vprsv IS INITIAL.
+      READ TABLE ti_mara WITH KEY matnr = ti_lin-matnr
+                                  bwkey = ti_lin-bwkey BINARY SEARCH.
+    ENDIF.
+    CASE ti_mara-vprsv.
+      WHEN 'V'.
+        DATA: v_refkey TYPE vbrp-vbeln,
+              v_mblnr  TYPE mseg-mblnr.
+        v_refkey = ti_lin-refkey(10).
+        SELECT SINGLE vgbel
+          FROM vbrp
+          INTO @DATA(v_vgbel)
+          WHERE vbeln   = @v_refkey
+          AND   posnr   = @ti_lin-itmnum.
+        IF sy-subrc IS INITIAL.
+          SELECT SINGLE vbeln, posnn
+            FROM vbfa
+            INTO @DATA(w_vbfa)
+            WHERE vbelv   = @v_vgbel
+            AND   posnv   = @ti_lin-itmnum
+            AND   ( vbtyp_n	=	'R'
+            AND   ( vbtyp_v	=	'J' OR vbtyp_v = 'T' ) )
+            AND   bwart   <> @space.
+          IF sy-subrc IS INITIAL.
+            DATA(v_data) = s_docdat-low(4).
+            SELECT SINGLE dmbtr, shkzg ,menge
+              FROM mseg
+              INTO @DATA(w_mseg)
+              WHERE mblnr = @w_vbfa-vbeln
+              AND   mjahr = @v_data
+              AND   zeile = @w_vbfa-posnn.
+            IF sy-subrc IS INITIAL.
+              IF w_mseg-shkzg = 'H'.
+*                ti_alv-wavwr    = w_mseg-dmbtr.
+                TRY.
+                    ti_alv-wavwr    = w_mseg-dmbtr.
+                  CATCH cx_sy_zerodivide.
+                    ...
+                ENDTRY.
+              ELSEIF w_mseg-shkzg = 'S'.
+*                ti_alv-wavwr    = w_mseg-dmbtr * -1.
+                TRY.
+                    ti_alv-wavwr    = ( w_mseg-dmbtr ) * -1.
+                  CATCH cx_sy_zerodivide.
+                    ...
+                ENDTRY.
+              ENDIF.
+            ENDIF.
+            IF ti_alv-wavwr IS INITIAL.
+              TRY.
+                  ti_alv-wavwr = ti_mara-verpr / ti_mara-peinh.
+                CATCH cx_sy_zerodivide.
+                  ...
+              ENDTRY.
+            ENDIF.
+          ENDIF.
+        ELSE.
+          v_data = s_docdat-low(4).
+          v_mblnr = ti_lin-refkey(10).
+          SELECT SINGLE dmbtr shkzg
+            FROM mseg
+            INTO w_mseg
+            WHERE mblnr = v_mblnr
+            AND   mjahr = v_data
+            AND   matnr = ti_lin-matnr
+            AND   werks = ti_lin-bwkey.
+*            AND   zeile = ti_lin-refitm.
+          IF sy-subrc IS INITIAL.
+            IF w_mseg-shkzg = 'H'.
+              ti_alv-wavwr    = w_mseg-dmbtr.
+            ELSEIF w_mseg-shkzg = 'S'.
+              ti_alv-wavwr    = w_mseg-dmbtr * -1.
+            ENDIF.
+          ENDIF.
+          IF ti_alv-wavwr IS INITIAL.
+            TRY.
+                ti_alv-wavwr = ti_mara-verpr / ti_mara-peinh.
+              CATCH cx_sy_zerodivide.
+                ...
+            ENDTRY.
+          ENDIF.
+        ENDIF.
+      WHEN 'S'.
+        DATA(ti_mlcd_aux) = ti_mlcd[].
+        SORT ti_mlcd_aux BY kalnr bdatj poper.
+*        DELETE ti_mlcd_aux[] WHERE kalnr <> ti_ckmlhd-kalnr
+*                             AND   bdatj <> vg_bdatj
+*                             AND   poper <> vg_poper.
+*        DELETE ADJACENT DUPLICATES FROM ti_mlcd_aux[] COMPARING kalnr bdatj poper.
+*        IF ti_mlcd_aux[] IS NOT INITIAL.
+*          v_yes = abap_true.
+*      ENDIF.
+        LOOP AT ti_mlcd_aux INTO DATA(w_mlcd_aux) WHERE kalnr = ti_ckmlhd-kalnr AND bdatj = vg_bdatj AND poper = vg_poper.
+          v_salk3  = v_salk3  + w_mlcd_aux-salk3 .
+          v_estprd = v_estprd + w_mlcd_aux-estprd.
+          v_estkdm = v_estkdm + w_mlcd_aux-estkdm.
+          v_mstprd = v_mstprd + w_mlcd_aux-mstprd.
+          v_mstkdm = v_mstkdm + w_mlcd_aux-mstkdm.
+          v_lbkum  = v_lbkum + w_mlcd_aux-lbkum.
+          v_yes = abap_true.
+        ENDLOOP.
+        IF v_yes EQ abap_true.
+          TRY.
+              vg_netpr = ( v_salk3
+                         + v_estprd
+                         + v_estkdm
+                         + v_mstprd
+                         + v_mstkdm ) / v_lbkum.
+            CATCH cx_sy_zerodivide.
+              ...
+          ENDTRY.
+        ELSE.
+          TRY.
+              vg_netpr = ( ti_mlcd-salk3
+                         + ti_mlcd-estprd
+                         + ti_mlcd-estkdm
+                         + ti_mlcd-mstprd
+                         + ti_mlcd-mstkdm ) / v_lbkum.
+            CATCH cx_sy_zerodivide.
+              ...
+          ENDTRY.
+        ENDIF.
+        CLEAR: v_yes, v_salk3, v_estprd, v_estkdm, v_mstprd, v_mstkdm, v_lbkum.
+        IF ti_lin-menge GE 0.
+          ti_alv-wavwr = vg_netpr * ti_lin-menge.
+        ELSE.
+          ti_alv-wavwr = vg_netpr * ( ti_lin-menge * -1 ).
+        ENDIF.
+        IF ti_alv-wavwr IS INITIAL.
+          TRY.
+              ti_alv-wavwr = ti_mara-stprs * ti_lin-menge / ti_mara-peinh.
+            CATCH cx_sy_zerodivide.
+              ...
+          ENDTRY.
+        ENDIF.
+    ENDCASE.
+    CLEAR vg_netpr.
+***Fim - ABAP_EVOX - 12/01/23
+
+***Inicio - ABAP_EVOX - 20/11/23
+    IF ti_ckmlhd-vbeln IS NOT INITIAL.
+      IF ti_lin-menge GE 0.
+        w_cts_med-matnr = ti_ckmlhd-matnr.
+        w_cts_med-matnr = |{ w_cts_med-matnr ALPHA = OUT }|.
+        w_cts_med-menge = ti_lin-menge.
+        w_cts_med-cpv   = ti_alv-wavwr.
+        COLLECT w_cts_med INTO t_cts_med.
+      ENDIF.
+    ENDIF.
+***Fim - ABAP_EVOX - 20/11/23
+
+    IF    ti_doc-nftype EQ 'ZR' OR
+          ti_doc-nftype EQ 'ZU' OR
+          ti_doc-nftype EQ 'ZY' OR
+          ti_doc-nftype EQ 'N5' OR
+          ti_doc-nftype EQ 'ZB' OR
+          ti_doc-nftype EQ 'YD' OR
+          ti_doc-nftype EQ 'N4' OR
+          ( ti_doc-nftype EQ 'YG' AND ( ti_lin-cfop = '1124AA' OR ti_lin-cfop = '1901AA'
+                                     OR ti_lin-cfop = '1902AA' OR ti_lin-cfop = '1949AA' ) ) OR
+          ( ti_doc-nftype EQ 'Z7' AND ( ti_lin-cfop = '1202AA' OR ti_lin-cfop = '2202AA'
+                                     OR ti_lin-cfop = '1411AA' OR ti_lin-cfop = '2411AA'
+                                     OR ti_lin-cfop = '1410AA' OR ti_lin-cfop = '2410AA' ) ) OR
+          ti_doc-nftype EQ 'ZE'.
+
+      ti_alv-pis     = ti_alv-pis     * -1.
+      ti_alv-cofins  = ti_alv-cofins  * -1.
+      ti_alv-icms    = ti_alv-icms    * -1.
+      ti_alv-icms_st = ti_alv-icms_st * -1.
+      ti_alv-ipi     =  ti_alv-ipi    * -1.
+      ti_alv-netwr   = ti_alv-netwr   * -1.
+      ti_alv-rec_liquida = ti_alv-rec_liquida * -1.
+      ti_alv-total   = ti_alv-total  * -1 .
+      IF ti_alv-total LT 0 AND ti_alv-wavwr GT 0.
+        ti_alv-wavwr   = ti_alv-wavwr  * -1 .
+      ENDIF.
+    ENDIF.
+******************* FINAL  - NOVO CALCULO DAS COLUNAS IMPOSTOS
+
+    READ TABLE it_basis WITH KEY nf_nronf   = ti_doc-nfenum
+                                 nf_dtemis  = ti_doc-docdat
+                                 nf_codcli  = ti_kna1-kunnr BINARY SEARCH. "ACB-I 06.07.2020 Melhoria na seleção de dados
+    IF sy-subrc EQ 0.
+      ti_alv-codtab = it_basis-nf_codtab.
+      ti_alv-zterm  = it_basis-prazo.
+      ti_alv-status = it_basis-status.
+***Inicio - ABAP_EVOX - 12/01/23
+    ELSE.
+      READ TABLE ti_lin WITH KEY docnum = ti_doc-docnum.
+      IF sy-subrc IS INITIAL.
+        IF ti_lin-docref IS INITIAL.
+          v_len = strlen( ti_doc-observat ).
+          v_pos = 0.
+          WHILE v_pos LT v_len.
+            IF ti_doc-observat+v_pos(1) CA c_nums.
+              CONCATENATE v_conc ti_doc-observat+v_pos(1) INTO v_conc.
+              CONDENSE v_conc NO-GAPS.
+            ENDIF.
+            IF ti_doc-observat+v_pos(1) EQ '/'.
+              EXIT.
+            ENDIF.
+            v_pos = v_pos + 1.
+          ENDWHILE.
+          v_docref = v_conc.
+        ELSE.
+          v_docref = ti_lin-docref.
+        ENDIF.
+        IF v_docref IS NOT INITIAL.
+          DATA v_parid TYPE j_1bnfdoc-parid.
+          SHIFT v_docref LEFT DELETING LEADING '0'.
+          v_nfenum = v_docref.
+          v_nfenum = |{ v_nfenum ALPHA = IN }|.
+          SELECT SINGLE *
+            FROM bseg
+            INTO @DATA(w_bseg)
+            WHERE bukrs = @p_bukrs
+            AND   belnr = @ti_doc-belnr
+            AND   gjahr = @ti_doc-pstdat(4)
+            AND   koart = 'D'.
+          v_parid = w_bseg-kunnr.
+          SELECT SINGLE *
+            FROM j_1bnfdoc
+            INTO @DATA(w_doc_aux)
+            WHERE nfenum = @v_nfenum
+            AND   parid  = @v_parid.
+          IF sy-subrc IS INITIAL.
+            READ TABLE it_basis WITH KEY nf_nronf   = w_doc_aux-nfenum
+                                         nf_dtemis  = w_doc_aux-docdat
+                                         nf_codcli  = v_parid BINARY SEARCH.
+            IF sy-subrc EQ 0.
+              ti_alv-codtab = it_basis-nf_codtab.
+            ENDIF.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+      CLEAR: v_docref, v_conc, v_nfenum.
+***Fim - ABAP_EVOX - 12/01/23
+    ENDIF.
+
+
+***ACB-I 06.07.2020 Melhoria na seleção de dados
+    IF ti_alv-codtab IS INITIAL AND ti_alv-nferef IS NOT INITIAL.
+
+      CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT'
+        EXPORTING
+          input  = ti_alv-nferef
+        IMPORTING
+          output = ti_alv-nferef.
+
+      READ TABLE it_tabref WITH KEY nf_nronf  =  ti_alv-nferef
+                                    nf_dtemis =  ti_alv-dtnfref BINARY SEARCH.
+      IF sy-subrc EQ 0.
+        ti_alv-codtab = it_tabref-nf_codtab.
+      ENDIF.
+    ENDIF.
+***ACB-F
+
+
+    COLLECT ti_alv.
+    CLEAR ti_alv.
+
+  ENDLOOP.
+
+***Inicio - ABAP_EVOX - 20/11/23
+  CLEAR w_cts_med.
+  LOOP AT ti_alv ASSIGNING FIELD-SYMBOL(<fs_cts_med>).
+    READ TABLE t_cts_med INTO w_cts_med WITH KEY matnr = <fs_cts_med>-matnr.
+    IF sy-subrc IS INITIAL.
+      v_cts_med = w_cts_med-cpv / w_cts_med-menge.
+      <fs_cts_med>-wavwr = <fs_cts_med>-menge * v_cts_med.
+    ENDIF.
+  ENDLOOP.
+***Fim - ABAP_EVOX - 20/11/23
+
+  IF p_acer EQ 'X'.
+    DELETE ti_alv WHERE status <> '4'.
+  ENDIF.
+
+ENDFORM.                    " F_MONTA_SAIDA_DADOS
